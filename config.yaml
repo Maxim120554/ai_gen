@@ -1,0 +1,47 @@
+# ============================================================
+# ai_gen/config.yaml — единая конфигурация конвейера
+# ============================================================
+
+paths:
+  base_dir: "."
+  image: "input_data_png/P0217.png"
+  model: "weights/best.pt"
+  output_dir: "results/results_full_4"
+  icon_dir: "icons"
+  detections_geojson: "00_detections.geojson"
+
+detection:
+  slice_size: 640
+  overlap_ratio: 0.2
+  confidence_threshold: 0.35
+  device: "cuda:0"
+  use_georeference: false
+
+generalization:
+  min_cluster_size: 3
+  min_samples: 3
+  epsilon: 150.0
+  concave_ratio: 0.6
+  method: "eom"
+  use_area: false
+  min_confidence: 0.35
+
+  class_params:
+    small-vehicle:
+      min_cluster_size: 4
+      epsilon: 80.0
+    large-vehicle:
+      min_cluster_size: 5
+      epsilon: 90.0
+    ship:
+      min_cluster_size: 4
+      epsilon: 100.0
+    plane:
+      min_cluster_size: 3
+      epsilon: 80.0
+    helicopter:
+      min_cluster_size: 2
+      epsilon: 80.0
+
+output:
+  zoom: 0.05
