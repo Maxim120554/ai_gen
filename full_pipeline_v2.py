@@ -2,14 +2,45 @@
 full_pipeline_v2.py — единый конвейер: снимок -> детекция -> генерализация.
 
 Точка входа. Импортирует модули из пакета src.
+
+Использование:
+    python full_pipeline_v2.py --config config.yaml
+    python full_pipeline_v2.py --config config.yaml --image /data/img.png --weights /data/best.pt --output-dir /results
 """
 import os
+import argparse
 from pathlib import Path
+
 import yaml
 
 from src.detection import detect_and_save_geojson
 from src.pipeline import run_pipeline_multi_pixel
 
+
+# ============================================================
+# Конфиг
+# ============================================================
+
+def load_config(config_path="config.yaml"):
+    """Загружает YAML-конфиг и нормализует пути относительно base_dir."""
+    with open(config_path, "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f)
+
+    base = Path(cfg["paths"]["base_dir"]).resolve()
+    p = cfg["paths"]
+    p["base_dir"] = base
+    p["image"] = base / p["image"]
+    p["model"] = base / p["model"]
+    p["output_dir"] = base / p["output_dir"]
+    p["icon_dir"] = base / p["icon_dir"]
+    p["detections_geojson"] = p["output_dir"] / p["detections_geojson"]
+
+    return cfg
+
+
+# ============================================================
+# Основной конвейер
+# ============================================================
 
 def run_full_pipeline(image_path, model_path, output_dir="results_full",
                       slice_size=640, overlap_ratio=0.2, confidence_threshold=0.35,
@@ -40,7 +71,7 @@ def run_full_pipeline(image_path, model_path, output_dir="results_full",
         return {}
 
     if use_georeference:
-        print("️  Получены географические координаты: пиксельная версия генерализации\n"
+        print("⚠️  Получены географические координаты: пиксельная версия генерализации\n"
               "   ожидает пиксельные координаты.")
 
     return run_pipeline_multi_pixel(
@@ -55,26 +86,29 @@ def run_full_pipeline(image_path, model_path, output_dir="results_full",
     )
 
 
-def load_config(config_path="config.yaml"):
-    """Загружает YAML-конфиг и нормализует пути относительно base_dir."""
-    with open(config_path, "r", encoding="utf-8") as f:
-        cfg = yaml.safe_load(f)
+# ============================================================
+# Точка входа: конфиг + опциональные переопределения из CLI
+# ============================================================
 
-    base = Path(cfg["paths"]["base_dir"]).resolve()
-    p = cfg["paths"]
-    p["base_dir"] = base
-    p["image"] = base / p["image"]
-    p["model"] = base / p["model"]
-    p["output_dir"] = base / p["output_dir"]
-    p["icon_dir"] = base / p["icon_dir"]
-    p["detections_geojson"] = p["output_dir"] / p["detections_geojson"]
+def run(config_path="config.yaml", image=None, weights=None, output_dir=None):
+    """Запуск конвейера по конфигу с возможностью переопределить пути.
 
-    return cfg
-
-
-def run(config="config.yaml"):
-    cfg = load_config(config)
+    Args:
+        config_path: путь к config.yaml.
+        image:       переопределить путь к изображению (из CLI или None).
+        weights:     переопределить путь к весам модели (из CLI или None).
+        output_dir:  переопределить выходную папку (из CLI или None).
+    """
+    cfg = load_config(config_path)
     p, d, g, o = cfg["paths"], cfg["detection"], cfg["generalization"], cfg["output"]
+
+    # Применяем переопределения из CLI (если переданы)
+    if image is not None:
+        p["image"] = Path(image)
+    if weights is not None:
+        p["model"] = Path(weights)
+    if output_dir is not None:
+        p["output_dir"] = Path(output_dir)
 
     class_params = dict(g.get("class_params", {}))
 
@@ -102,5 +136,27 @@ def run(config="config.yaml"):
     )
 
 
+# ============================================================
+# CLI
+# ============================================================
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Конвейер генерализации карт")
+    parser.add_argument("--config", required=True, help="Путь к config.yaml")
+    parser.add_argument("--image", default=None,
+                        help="Переопределить путь к изображению из конфига")
+    parser.add_argument("--weights", default=None,
+                        help="Переопределить путь к весам YOLO из конфига")
+    parser.add_argument("--output-dir", default=None,
+                        help="Переопределить output_dir из конфига")
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
-    run(config="config.yaml")
+    args = parse_args()
+    run(
+        config_path=args.config,
+        image=args.image,
+        weights=args.weights,
+        output_dir=args.output_dir,
+    )

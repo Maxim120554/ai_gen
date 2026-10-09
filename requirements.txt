@@ -1,0 +1,24 @@
+# ===== Ядро =====
+numpy>=1.24,<2.0
+pandas>=2.0
+pyyaml>=6.0
+
+# ===== Геометрия =====
+shapely>=2.0
+geopandas>=0.14
+
+# ===== Кластеризация =====
+scikit-learn>=1.3
+
+# ===== Визуализация =====
+matplotlib>=3.7
+
+# ===== Детекция (headless — без GUI) =====
+opencv-python-headless>=4.8
+sahi>=0.11
+ultralytics>=8.1
+
+# ===== PyTorch CPU-only (самая тяжёлая часть) =====
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.2.1+cpu
+torchvision==0.17.1+cpu

@@ -1,0 +1,8 @@
+services:
+  ai_gen:
+    build: .
+    image: ai_gen:cpu
+    container_name: ai_gen_cpu
+    volumes:
+      - ./results:/results
+    restart: "no"
